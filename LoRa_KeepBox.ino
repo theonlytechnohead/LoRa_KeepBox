@@ -19,6 +19,8 @@ SSD1306 display(OLED_ADDRESS, OLED_SDA, OLED_SCL);
 // Global constants / variables
 TaskHandle_t background_loop;
 
+void (*state)(); // function pointer, to hold the current state (i.e. function to execute)
+
 // Local-ish variables
 Timer t;
 unsigned long last_millis = 0;
@@ -43,29 +45,32 @@ void setup () {
   display.drawString(0, 0, "Hello world!");
   display.display();
 
-  xTaskCreatePinnedToCore(
-      backgroundLoop, // Function to implement the task
-      "background loop", // Name of the task
-      8192,  // Stack size in words, causes stack overflow if too low
-      NULL,  // Task input parameter
-      0,  // Priority of the task, 0 is lowest
-      &background_loop,  // Task handle
-      0); // Core where the task should run, code runs on core 1 by default
+//  xTaskCreatePinnedToCore(
+//      backgroundLoop, // Function to implement the task
+//      "background loop", // Name of the task
+//      8192,  // Stack size in words, causes stack overflow if too low
+//      NULL,  // Task input parameter
+//      0,  // Priority of the task, 0 is lowest
+//      &background_loop,  // Task handle
+//      0); // Core where the task should run, code runs on core 1 by default
 
   Serial.println("Boot completed");
 
   //t.every(5000, updateFrequencyOffset, (void*) 0);
 
-  setFrequencyCorrection();
+//  setFrequencyCorrection();
   LoRa.receive();
+
+  state = idle;
 }
 
 void loop () {
   //t.update();
-  int packetSize = LoRa.parsePacket();
-  if (packetSize) {
-    parseData(packetSize);
-  }
+//  int packetSize = LoRa.parsePacket();
+//  if (packetSize) {
+//    parseData(packetSize);
+//  }
+  state();
 }
 
 void backgroundLoop (void* parameter) {
