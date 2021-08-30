@@ -35,7 +35,7 @@ void init_LoRa () {
   LoRa.setCodingRate4(6);
   LoRa.setFrequency(LORA_FREQ);
   LoRa.setSignalBandwidth(125E3); // this SF, CR, and BW make for 433 bps (no, not even Kbps)
-  //LoRa.enableCrc();
+  LoRa.enableCrc();
   LoRa.idle();
 }
 

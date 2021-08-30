@@ -4,11 +4,12 @@
 #include <CircularBuffer.h>
 CircularBuffer<StaticJsonDocument<256>,4> send_queue;
 void (*prev)(); // stores the previous state, to aid in state transitions
+int count = 0;
 int packetSize = 0;
 
 void idle () {
   if (prev != state) {
-    printMessage("lora", "state=idle");
+    printMessage("lora", "idle");
 //    digitalWrite(2, LOW); // LED off
     LoRa.receive();
     prev = state;
@@ -29,9 +30,10 @@ void idle () {
 }
 
 void send () {
-  printMessage("lora", "state=send");
+  printMessage("lora", "sending packet " + String(count));
 
   StaticJsonDocument<256> doc = send_queue.first(); // pull from the front
+  doc["count"] = count;
   
   char output[measureJson(doc) + 1];
   serializeJson(doc, output, sizeof(output));
@@ -53,7 +55,7 @@ unsigned long startWaitTime;
 unsigned short retries = 0; // for retransmit
 void wait () {
   if (prev != state) {
-    printMessage("lora", "state=wait");
+    printMessage("lora", "wait");
     startWaitTime = millis();
     LoRa.receive();
     prev = state;
@@ -69,6 +71,8 @@ void wait () {
     if (packet == "ACK") {
       send_queue.shift(); // dequeue (pop)
       retries = 0;
+      printMessage("lora", "packet " + String(count) + " ACK'd");
+      count++;
       prev = state;
       state = idle;
       return;
@@ -87,16 +91,17 @@ void wait () {
 }
 
 void retransmit () {
-  printMessage("lora", "state=retransmit, retries=" + String(retries));
+  printMessage("lora", "retransmitting, retried " + String(retries) + " times");
   // check retries
-  if (retries < 4) {
+  if (retries < 3) {
     retries++;
     // retransmit
     prev = state;
     state = send;
     return;
   } else {
-    printMessage("lora", "dropped packet after max retries");
+    printMessage("lora", "dropped packet " + String(count) + " after 3 retries");
+    count++;
     retries = 0;
     prev = state;
     state = idle;
@@ -105,7 +110,7 @@ void retransmit () {
 }
 
 void receive () {
-  printMessage("lora", "state=receive");
+  printMessage("lora", "receiving");
   String packet;
   for (int i = 0; i < packetSize; i++) {
     packet += (char) LoRa.read();
@@ -133,7 +138,7 @@ void receive () {
 }
 
 void ack () {
-  printMessage("lora", "state=ack");
+  printMessage("lora", "ack");
   digitalWrite(2, HIGH);
   LoRa.beginPacket();
   LoRa.print("ACK");
@@ -146,13 +151,13 @@ void ack () {
 }
 
 void nak () {
-  printMessage("lora", "stat=nak");
+  printMessage("lora", "nak");
   digitalWrite(2, HIGH);
   LoRa.beginPacket();
   LoRa.print("NAK");
   LoRa.endPacket();
   digitalWrite(2, LOW);
-
+  
   prev = state;
   state = idle;
   return;
