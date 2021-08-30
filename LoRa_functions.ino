@@ -39,18 +39,8 @@ void init_LoRa () {
   LoRa.idle();
 }
 
-long setFrequencyCorrection () {
-  uint8_t temperature = LoRa.temperature();
-  String temp_s = String(temperature) + "°C";
-  long frequencyOffset = 150 * temperature;
-  //LoRa.setFrequency(LORA_FREQ + frequencyOffset);
-  Serial.println(temp_s + " : " + String(frequencyOffset) + "MHz");
-  return frequencyOffset;
-}
-
 void sendJSON (DynamicJsonDocument doc) {
   // Prepare for sending and turn on LED
-  setFrequencyCorrection();
   LoRa.idle();
   digitalWrite(2, HIGH);
 
@@ -88,5 +78,4 @@ void parseData (int packetSize) {
   display.drawString(0, 10, doc["millis"]);
   display.display();
   digitalWrite(2, LOW);
-  setFrequencyCorrection();
 }
